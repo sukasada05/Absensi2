@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a120a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Absensi DUKOPS">
+<meta name="description" content="Rekap Laporan Bulanan Babinsa - Absensi DUKOPS">
+<title>Absensi DUKOPS - Babinsa</title>
+
+<!-- ===== PWA: manifest akan di-inject via JS ===== -->
+<link rel="manifest" id="manifestLink">
+<link rel="apple-touch-icon" id="appleIcon">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+    --bg-primary: #0a120a;
+    --bg-secondary: #12221a;
+    --bg-card: #1a2e22;
+    --bg-hover: #234030;
+    --border: #2d4a37;
+    --text: #e8f5e9;
+    --text-dim: #9fb8a8;
+    --accent: #4caf50;
+    --accent-dark: #2b6b30;
+    --success: #4caf50;
+    --warning: #ff9800;
+    --danger: #f44336;
+    --info: #2196f3;
+    --shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+    background-image: radial-gradient(circle at 20% 10%, rgba(76,175,80,0.08), transparent 40%),
+                      radial-gradient(circle at 90% 80%, rgba(76,175,80,0.05), transparent 45%);
+}
+
+/* ============ HEADER ============ */
+.abs-header {
+    background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
+    border-bottom: 2px solid var(--border);
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+}
+.abs-header-inner {
+    display: flex; align-items: center; gap: 12px;
+    max-width: 900px; margin: 0 auto;
+}
+.abs-header-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; color: white;
+    box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+    flex-shrink: 0;
+}
+.abs-header-text { flex: 1; min-width: 0; }
+.abs-header-title {
+    font-size: 1.05rem; font-weight: 700;
+    letter-spacing: 0.3px; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+}
+.abs-header-subtitle {
+    font-size: 0.72rem; color: var(--text-dim);
+    margin-top: 2px; letter-spacing: 0.5px;
+}
+.abs-live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success); display: inline-block;
+    animation: pulse 1.5s infinite;
+}
+.abs-live-dot.offline { background: var(--danger); animation: none; }
+@keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+.abs-refresh-btn, .abs-install-btn {
+    height: 40px; border-radius: 10px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+}
+.abs-refresh-btn { width: 40px; }
+.abs-install-btn {
+    padding: 0 12px; gap: 6px; font-size: 0.8rem; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(76,175,80,0.35);
+    display: none;
+}
+.abs-install-btn.show { display: flex; }
+.abs-install-btn:active { transform: scale(0.94); }
+.abs-refresh-btn:active { transform: scale(0.92); background: var(--bg-hover); }
+.abs-refresh-btn.spinning i { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ FILTER BAR ============ */
+.abs-filter {
+    max-width: 900px; margin: 14px auto 0;
+    padding: 0 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.abs-select-wrap { position: relative; }
+.abs-select-wrap::after {
+    content: '\f107';
+    font-family: 'Font Awesome 6 Free'; font-weight: 900;
+    position: absolute; right: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim); pointer-events: none;
+    font-size: 0.85rem;
+}
+.abs-select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 12px 36px 12px 14px;
+    border-radius: 10px;
+    font-size: 0.9rem; font-weight: 600;
+    appearance: none; -webkit-appearance: none;
+    cursor: pointer; transition: all 0.2s;
+    font-family: inherit;
+}
+.abs-select:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+}
+.abs-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============ MAIN ============ */
+.abs-main {
+    max-width: 900px; margin: 0 auto;
+    padding: 16px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ============ STATS ============ */
+.abs-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-bottom: 16px;
+    animation: fadeUp 0.4s ease;
+}
+.abs-stat {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
+    border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 12px 6px;
+    text-align: center; position: relative;
+    overflow: hidden; transition: transform 0.2s;
+    cursor: pointer;
+}
+.abs-stat:active { transform: scale(0.97); }
+.abs-stat::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--stat-color, var(--accent));
+    opacity: 0.8;
+}
+.abs-stat-val {
+    font-size: 1.5rem; font-weight: 800; line-height: 1;
+    color: var(--stat-color, var(--accent));
+    font-variant-numeric: tabular-nums;
+}
+.abs-stat-lbl {
+    font-size: 0.62rem; font-weight: 700;
+    color: var(--text-dim); margin-top: 6px;
+    letter-spacing: 0.8px; text-transform: uppercase;
+}
+
+/* ============ PROGRESS ============ */
+.abs-overall {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
+    border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 16px;
+    margin-bottom: 16px; animation: fadeUp 0.5s ease;
+}
+.abs-overall-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+}
+.abs-overall-title {
+    font-size: 0.78rem; font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.abs-overall-pct {
+    font-size: 1.6rem; font-weight: 800;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.abs-progress {
+    height: 10px; background: rgba(0,0,0,0.4);
+    border-radius: 6px; overflow: hidden; position: relative;
+}
+.abs-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #66bb6a);
+    border-radius: 6px;
+    transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 0 12px rgba(76,175,80,0.5);
+}
+
+/* ============ SEARCH ============ */
+.abs-search-wrap { position: relative; margin-bottom: 12px; }
+.abs-search-wrap i {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim); font-size: 0.85rem;
+}
+.abs-search {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px 12px 40px;
+    border-radius: 10px; font-size: 0.88rem;
+    font-family: inherit; transition: all 0.2s;
+}
+.abs-search:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+}
+
+/* ============ LIST ============ */
+.abs-list-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 4px 10px;
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.abs-list-count {
+    background: var(--bg-card); color: var(--text);
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 0.7rem; border: 1px solid var(--border);
+}
+.abs-list { display: flex; flex-direction: column; gap: 8px; }
+
+.abs-item {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
+    border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 8px 12px; align-items: center;
+    cursor: pointer; transition: all 0.2s;
+    animation: fadeUp 0.4s ease both;
+    position: relative; overflow: hidden;
+}
+.abs-item:active { transform: scale(0.985); background: var(--bg-hover); }
+.abs-item::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--item-color, var(--accent));
+}
+.abs-item-name {
+    font-size: 0.9rem; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.abs-item-name span {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.abs-item-badge {
+    font-size: 0.62rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 6px;
+    letter-spacing: 0.5px; white-space: nowrap;
+}
+.abs-item-count {
+    font-size: 1rem; font-weight: 800;
+    color: var(--item-color, var(--accent));
+    font-variant-numeric: tabular-nums; text-align: right;
+}
+.abs-item-count small {
+    font-size: 0.7rem; color: var(--text-dim); font-weight: 600;
+}
+.abs-item-bar {
+    grid-column: 1 / -1; height: 6px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 4px; overflow: hidden;
+}
+.abs-item-bar-fill {
+    height: 100%;
+    background: var(--item-color, var(--accent));
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+.badge-lengkap { background: rgba(76,175,80,0.18); color: #81c784; border: 1px solid rgba(76,175,80,0.4); }
+.badge-bl { background: rgba(255,152,0,0.18); color: #ffb74d; border: 1px solid rgba(255,152,0,0.4); }
+.badge-belum { background: rgba(244,67,54,0.18); color: #ef9a9a; border: 1px solid rgba(244,67,54,0.4); }
+
+/* ============ STATES ============ */
+.abs-state { text-align: center; padding: 50px 20px; color: var(--text-dim); }
+.abs-spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%; margin: 0 auto 16px;
+    animation: spin 0.9s linear infinite;
+}
+.abs-state-icon { font-size: 3rem; margin-bottom: 14px; opacity: 0.4; }
+.abs-state-msg { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.abs-state-sub { font-size: 0.78rem; opacity: 0.7; }
+.abs-state.error .abs-state-icon { color: var(--danger); opacity: 1; }
+.abs-state.error .abs-state-msg { color: var(--danger); }
+
+/* ============ MODAL ============ */
+.abs-modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: flex; align-items: flex-end; justify-content: center;
+    animation: fadeIn 0.25s ease; padding: 0;
+}
+@media (min-width: 600px) {
+    .abs-modal { align-items: center; padding: 20px; }
+}
+.abs-modal-content {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
+    border: 1.5px solid var(--border);
+    border-radius: 22px 22px 0 0;
+    width: 100%; max-width: 440px;
+    padding: 24px 22px calc(24px + env(safe-area-inset-bottom, 0px));
+    animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative; max-height: 90vh; overflow-y: auto;
+}
+@media (min-width: 600px) {
+    .abs-modal-content { border-radius: 22px; }
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.abs-modal-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,0.08);
+    border: none; color: var(--text);
+    border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+}
+.abs-modal-icon {
+    width: 70px; height: 70px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; margin: 0 auto 16px;
+    background: var(--item-color, var(--accent));
+    color: white; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.abs-modal-name {
+    font-size: 1.2rem; font-weight: 800;
+    text-align: center; color: var(--text);
+    margin-bottom: 6px; word-break: break-word;
+}
+.abs-modal-status {
+    display: block; font-size: 0.72rem; font-weight: 700;
+    padding: 5px 14px; border-radius: 20px;
+    letter-spacing: 1px; margin: 0 auto 20px;
+    text-align: center; width: fit-content;
+}
+.abs-modal-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 20px;
+}
+.abs-modal-stat {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 10px; text-align: center;
+}
+.abs-modal-stat-val {
+    font-size: 1.5rem; font-weight: 800;
+    color: var(--item-color, var(--accent));
+    line-height: 1; font-variant-numeric: tabular-nums;
+}
+.abs-modal-stat-lbl {
+    font-size: 0.65rem; font-weight: 700;
+    color: var(--text-dim); text-transform: uppercase;
+    margin-top: 6px; letter-spacing: 0.8px;
+}
+.abs-modal-progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--text-dim); margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}
+.abs-modal-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white; border: none; border-radius: 12px;
+    font-size: 0.92rem; font-weight: 700; cursor: pointer;
+    margin-top: 20px; font-family: inherit;
+    letter-spacing: 0.5px; transition: all 0.2s;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.35);
+}
+.abs-modal-btn:active { transform: scale(0.97); }
+
+/* ============ TOAST ============ */
+.abs-toast {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card); color: var(--text);
+    padding: 12px 20px; border-radius: 12px;
+    font-size: 0.85rem; font-weight: 600;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow); z-index: 10000;
+    opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 90vw; display: flex; align-items: center; gap: 8px;
+    pointer-events: none;
+}
+.abs-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.abs-toast.success { border-color: var(--success); }
+.abs-toast.success i { color: var(--success); }
+.abs-toast.error { border-color: var(--danger); }
+.abs-toast.error i { color: var(--danger); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+    .abs-stat-val { font-size: 1.3rem; }
+    .abs-stat-lbl { font-size: 0.58rem; }
+    .abs-header-title { font-size: 0.98rem; }
+    .abs-item-name { font-size: 0.85rem; }
+    .abs-install-btn span { display: none; }
+    .abs-install-btn { width: 40px; padding: 0; }
+}
+@media (max-width: 360px) {
+    .abs-stats { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="abs-header">
+    <div class="abs-header-inner">
+        <div class="abs-header-icon">
+            <i class="fas fa-clipboard-check"></i>
+        </div>
+        <div class="abs-header-text">
+            <div class="abs-header-title">
+                Absensi DUKOPS
+                <span class="abs-live-dot" id="liveDot"></span>
+            </div>
+            <div class="abs-header-subtitle">Rekap Laporan Bulanan Babinsa</div>
+        </div>
+        <button class="abs-install-btn" id="installBtn" title="Install Aplikasi">
+            <i class="fas fa-download"></i><span>Install</span>
+        </button>
+        <button class="abs-refresh-btn" id="refreshBtn" title="Refresh">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+</header>
+
+<div class="abs-filter">
+    <div class="abs-select-wrap">
+        <select class="abs-select" id="tahunSelect">
+            <option value="">Pilih Tahun</option>
+        </select>
+    </div>
+    <div class="abs-select-wrap">
+        <select class="abs-select" id="bulanSelect">
+            <option value="">Pilih Bulan</option>
+        </select>
+    </div>
+</div>
+
+<main class="abs-main" id="absMain">
+    <div class="abs-state">
+        <div class="abs-spinner"></div>
+        <div class="abs-state-msg">Memuat data...</div>
+        <div class="abs-state-sub">Mohon tunggu sebentar</div>
+    </div>
+</main>
+
+<div class="abs-toast" id="toast">
+    <i class="fas fa-info-circle"></i>
+    <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ============================================================
+   PWA SETUP (manifest + icon digenerate runtime, tanpa file eksternal)
+   ============================================================ */
+(function setupPWA() {
+    // --- Generate PNG icon via canvas ---
+    function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+    function generateIcon(size, maskable = false) {
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        const ctx = c.getContext('2d');
+        // Background hijau gelap
+        const bg = ctx.createLinearGradient(0, 0, size, size);
+        bg.addColorStop(0, '#12221a');
+        bg.addColorStop(1, '#0a120a');
+        ctx.fillStyle = bg;
+        if (!maskable) {
+            roundRect(ctx, 0, 0, size, size, size * 0.22);
+            ctx.fill();
+        } else {
+            ctx.fillRect(0, 0, size, size);
+        }
+        // Lingkaran hijau
+        const cx = size / 2, cy = size / 2;
+        const radius = maskable ? size * 0.30 : size * 0.34;
+        const grad = ctx.createRadialGradient(cx, cy * 0.7, radius * 0.2, cx, cy, radius);
+        grad.addColorStop(0, '#66bb6a');
+        grad.addColorStop(1, '#2b6b30');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        // Checkmark
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = size * 0.085;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(size * 0.32, size * 0.52);
+        ctx.lineTo(size * 0.45, size * 0.65);
+        ctx.lineTo(size * 0.69, size * 0.38);
+        ctx.stroke();
+        return c.toDataURL('image/png');
+    }
+
+    const icon192 = generateIcon(192, false);
+    const icon512 = generateIcon(512, false);
+    const icon512m = generateIcon(512, true);
+
+    // Set apple touch icon
+    const appleIcon = document.getElementById('appleIcon');
+    if (appleIcon) appleIcon.href = generateIcon(180, false);
+
+    // --- Build manifest ---
+    const startUrl = location.pathname + location.search;
+    const manifest = {
+        name: "Absensi DUKOPS - Babinsa",
+        short_name: "Absensi DUKOPS",
+        description: "Rekap Laporan Bulanan Babinsa",
+        start_url: startUrl,
+        scope: location.pathname,
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#0a120a",
+        theme_color: "#0a120a",
+        lang: "id",
+        icons: [
+            { src: icon192,  sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: icon512,  sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: icon512m, sizes: "512x512", type: "image/png", purpose: "maskable" }
+        ]
+    };
+
+    // Manifest via Blob URL (paling stabil di Chrome)
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const manifestURL = URL.createObjectURL(blob);
+    document.getElementById('manifestLink').href = manifestURL;
+
+    // Fallback: juga pasang favicon
+    const fav = document.createElement('link');
+    fav.rel = 'icon';
+    fav.type = 'image/png';
+    fav.href = icon192;
+    document.head.appendChild(fav);
+})();
+
+/* ============ INSTALL PROMPT (beforeinstallprompt) ============ */
+let deferredInstallPrompt = null;
+const $installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if ($installBtn) $installBtn.classList.add('show');
+});
+
+$installBtn && $installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) {
+        // Fallback: beri instruksi manual
+        showToast('Buka menu Chrome → "Install app" / "Tambahkan ke layar utama"', 'info');
+        return;
+    }
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    $installBtn.classList.remove('show');
+    showToast(outcome === 'accepted' ? 'Aplikasi dipasang!' : 'Pemasangan dibatalkan',
+              outcome === 'accepted' ? 'success' : 'info');
+});
+
+window.addEventListener('appinstalled', () => {
+    showToast('Absensi DUKOPS berhasil dipasang', 'success');
+    deferredInstallPrompt = null;
+    if ($installBtn) $installBtn.classList.remove('show');
+});
+
+// Sembunyikan tombol kalau sudah standalone (sudah terinstall)
+if (window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true) {
+    if ($installBtn) $installBtn.style.display = 'none';
+}
+
+/* ============================================================
+   KONFIGURASI
+   ============================================================ */
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcKBFM8Mm0A8e_hWfl48uEUuDhlmxK8okgXF4M-102HLEuROZPN9YZlpmKnkRo8b_SKA/exec';
+const TARGET_LAPORAN = 9;
+const CACHE_KEY = 'absensi_dukops_v2';
+const CACHE_EXPIRY = 30 * 60 * 1000;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let currentData = null;
+let allDetails = [];
+let currentFilter = 'all';
+let isOnline = navigator.onLine;
+
+/* ============================================================
+   DOM
+   ============================================================ */
+const $tahun = document.getElementById('tahunSelect');
+const $bulan = document.getElementById('bulanSelect');
+const $main = document.getElementById('absMain');
+const $refresh = document.getElementById('refreshBtn');
+const $liveDot = document.getElementById('liveDot');
+const $toast = document.getElementById('toast');
+const $toastMsg = document.getElementById('toastMsg');
+
+/* ============================================================
+   UTILITAS
+   ============================================================ */
+function escapeHtml(t) {
+    if (t === null || t === undefined) return '';
+    return String(t).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+}
+
+function showToast(msg, type = 'info') {
+    $toastMsg.textContent = msg;
+    $toast.className = 'abs-toast show ' + type;
+    const icon = $toast.querySelector('i');
+    icon.className = type === 'success' ? 'fas fa-check-circle'
+                   : type === 'error' ? 'fas fa-exclamation-circle'
+                   : 'fas fa-info-circle';
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => $toast.classList.remove('show'), 2800);
+}
+
+function getCache() {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch(e) { return null; }
+}
+function setCache(data) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function updateOnlineStatus() {
+    isOnline = navigator.onLine;
+    $liveDot.classList.toggle('offline', !isOnline);
+}
+window.addEventListener('online', () => { updateOnlineStatus(); showToast('Kembali online', 'success'); });
+window.addEventListener('offline', () => { updateOnlineStatus(); showToast('Koneksi terputus', 'error'); });
+
+/* ============================================================
+   FETCH
+   ============================================================ */
+async function fetchAbsen(params) {
+    const qs = Object.keys(params).map(k => `${k}=${encodeURIComponent(params[k])}`).join('&');
+    const res = await fetch(`${SCRIPT_URL}?${qs}`, { method: 'GET', cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+}
+
+/* ============================================================
+   LOAD TAHUN
+   ============================================================ */
+async function loadYears() {
+    $tahun.disabled = true;
+    $tahun.innerHTML = '<option value="">Memuat...</option>';
+    $refresh.classList.add('spinning');
+
+    const cached = getCache();
+    if (cached && cached.years && cached.years.length) {
+        populateYears(cached.years);
+        $tahun.disabled = false;
+    }
+
+    if (!isOnline) {
+        if (!cached || !cached.years) $tahun.innerHTML = '<option value="">Offline - no data</option>';
+        $refresh.classList.remove('spinning');
+        return;
+    }
+
+    try {
+        const years = await fetchAbsen({ action: 'getYears' });
+        if (Array.isArray(years) && years.length) {
+            populateYears(years);
+            setCache({ ...(cached || {}), years });
+        } else if (!cached || !cached.years) {
+            $tahun.innerHTML = '<option value="">Tidak ada data</option>';
+        }
+    } catch (e) {
+        console.error('loadYears error:', e);
+        if (!cached || !cached.years) $tahun.innerHTML = '<option value="">Gagal memuat</option>';
+        showToast('Gagal memuat tahun', 'error');
+    } finally {
+        $tahun.disabled = false;
+        $refresh.classList.remove('spinning');
+    }
+}
+
+function populateYears(years) {
+    $tahun.innerHTML = '<option value="">Pilih Tahun</option>';
+    years.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        $tahun.appendChild(opt);
+    });
+    if (years.length) {
+        $tahun.value = years[0];
+        onYearChange();
+    }
+}
+
+/* ============================================================
+   LOAD BULAN
+   ============================================================ */
+async function onYearChange() {
+    const tahun = $tahun.value;
+    if (!tahun) {
+        $bulan.innerHTML = '<option value="">Pilih tahun dulu</option>';
+        $bulan.disabled = true;
+        return;
+    }
+    $bulan.disabled = true;
+    $bulan.innerHTML = '<option value="">Memuat...</option>';
+
+    const cached = getCache();
+    if (cached && cached.months && cached.months[tahun]) {
+        populateMonths(cached.months[tahun]);
+        $bulan.disabled = false;
+        return;
+    }
+
+    if (!isOnline) {
+        $bulan.innerHTML = '<option value="">Offline</option>';
+        $bulan.disabled = false;
+        return;
+    }
+
+    try {
+        const months = await fetchAbsen({ action: 'getMonths', tahun });
+        if (Array.isArray(months) && months.length) {
+            populateMonths(months);
+            const c = getCache() || {};
+            c.months = c.months || {};
+            c.months[tahun] = months;
+            setCache(c);
+        } else {
+            $bulan.innerHTML = '<option value="">Tidak ada data</option>';
+        }
+    } catch (e) {
+        console.error('loadMonths error:', e);
+        $bulan.innerHTML = '<option value="">Gagal memuat</option>';
+        showToast('Gagal memuat bulan', 'error');
+    } finally {
+        $bulan.disabled = false;
+    }
+}
+
+function populateMonths(months) {
+    $bulan.innerHTML = '<option value="">Pilih Bulan</option>';
+    months.forEach(m => {
+        const opt = document.createElement('option');
+        if (typeof m === 'object') {
+            opt.value = m.num || m.value || m;
+            opt.textContent = m.name || m.label || m;
+        } else {
+            opt.value = m; opt.textContent = m;
+        }
+        $bulan.appendChild(opt);
+    });
+    if (months.length) {
+        $bulan.value = $bulan.options[1].value;
+        loadData();
+    }
+}
+
+/* ============================================================
+   LOAD DATA
+   ============================================================ */
+async function loadData() {
+    const tahun = $tahun.value;
+    const bulan = $bulan.value;
+    if (!tahun || !bulan) return;
+
+    const cacheKey = `${tahun}_${bulan}`;
+    const cached = getCache();
+
+    if (cached && cached.data && cached.data[cacheKey]) {
+        const cd = cached.data[cacheKey];
+        if (Date.now() - cd.ts < CACHE_EXPIRY) {
+            currentData = cd.data;
+            renderData(cd.data);
+            return;
+        }
+    }
+
+    showLoading();
+
+    if (!isOnline) {
+        if (cached && cached.data && cached.data[cacheKey]) {
+            currentData = cached.data[cacheKey].data;
+            renderData(cached.data[cacheKey].data);
+            showToast('Menampilkan data cache', 'info');
+        } else {
+            showError('Tidak ada koneksi internet');
+        }
+        return;
+    }
+
+    try {
+        const data = await fetchAbsen({ action: 'getData', tahun, bulan });
+        currentData = data;
+        renderData(data);
+
+        const c = getCache() || {};
+        c.data = c.data || {};
+        c.data[cacheKey] = { data, ts: Date.now() };
+        setCache(c);
+    } catch (e) {
+        console.error('loadData error:', e);
+        if (cached && cached.data && cached.data[cacheKey]) {
+            currentData = cached.data[cacheKey].data;
+            renderData(cached.data[cacheKey].data);
+            showToast('Gagal refresh, pakai cache', 'error');
+        } else {
+            showError('Gagal memuat data: ' + e.message);
+        }
+    }
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function showLoading() {
+    $main.innerHTML = `
+        <div class="abs-state">
+            <div class="abs-spinner"></div>
+            <div class="abs-state-msg">Memuat data absensi...</div>
+            <div class="abs-state-sub">Mengambil dari server</div>
+        </div>`;
+}
+function showError(msg) {
+    $main.innerHTML = `
+        <div class="abs-state error">
+            <div class="abs-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="abs-state-msg">${escapeHtml(msg)}</div>
+            <div class="abs-state-sub">Coba refresh halaman</div>
+        </div>`;
+}
+
+function renderData(data) {
+    if (!data || data.error) {
+        showError(data && data.error ? data.error : 'Data tidak valid');
+        return;
+    }
+    allDetails = Array.isArray(data.details) ? data.details : [];
+    currentFilter = 'all';
+
+    const total = data.total_desa || allDetails.length;
+    const lengkap = data.desa_lengkap || 0;
+    const bl = data.desa_belum_lengkap || 0;
+    const belum = data.desa_belum || 0;
+    const pct = total > 0 ? Math.round((lengkap / total) * 100) : 0;
+
+    $main.innerHTML = `
+        <div class="abs-stats">
+            <div class="abs-stat" style="--stat-color:#2196f3" data-filter="all">
+                <div class="abs-stat-val">${total}</div>
+                <div class="abs-stat-lbl">Total</div>
+            </div>
+            <div class="abs-stat" style="--stat-color:#4caf50" data-filter="lengkap">
+                <div class="abs-stat-val">${lengkap}</div>
+                <div class="abs-stat-lbl">Lengkap</div>
+            </div>
+            <div class="abs-stat" style="--stat-color:#ff9800" data-filter="bl">
+                <div class="abs-stat-val">${bl}</div>
+                <div class="abs-stat-lbl">Kurang</div>
+            </div>
+            <div class="abs-stat" style="--stat-color:#f44336" data-filter="belum">
+                <div class="abs-stat-val">${belum}</div>
+                <div class="abs-stat-lbl">Belum</div>
+            </div>
+        </div>
+        <div class="abs-overall">
+            <div class="abs-overall-head">
+                <div class="abs-overall-title">Progress Keseluruhan</div>
+                <div class="abs-overall-pct">${pct}%</div>
+            </div>
+            <div class="abs-progress">
+                <div class="abs-progress-fill" style="width:${pct}%"></div>
+            </div>
+        </div>
+        <div class="abs-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" class="abs-search" id="searchInput" placeholder="Cari desa/kelurahan...">
+        </div>
+        <div class="abs-list-header">
+            <span>Daftar Wilayah</span>
+            <span class="abs-list-count" id="listCount">${allDetails.length}</span>
+        </div>
+        <div class="abs-list" id="desaList"></div>
+    `;
+
+    renderList(allDetails);
+
+    document.querySelectorAll('.abs-stat').forEach(el => {
+        el.addEventListener('click', () => {
+            currentFilter = el.getAttribute('data-filter');
+            applyFilter();
+        });
+    });
+    const search = document.getElementById('searchInput');
+    search.addEventListener('input', applyFilter);
+}
+
+function renderList(details) {
+    const list = document.getElementById('desaList');
+    const count = document.getElementById('listCount');
+    if (!list) return;
+
+    if (!details.length) {
+        list.innerHTML = `
+            <div class="abs-state">
+                <div class="abs-state-icon"><i class="fas fa-inbox"></i></div>
+                <div class="abs-state-msg">Tidak ada data</div>
+                <div class="abs-state-sub">Coba pilih bulan lain</div>
+            </div>`;
+        if (count) count.textContent = '0';
+        return;
+    }
+    if (count) count.textContent = details.length;
+
+    let html = '';
+    details.forEach((d, i) => {
+        const status = (d.status || 'BELUM').toUpperCase();
+        let color, badgeCls, badgeTxt, icon;
+        if (status === 'LENGKAP') {
+            color = '#4caf50'; badgeCls = 'badge-lengkap'; badgeTxt = 'LENGKAP';
+            icon = '<i class="fas fa-check-circle" style="color:#4caf50"></i>';
+        } else if (status === 'BELUM_LENGKAP') {
+            color = '#ff9800'; badgeCls = 'badge-bl'; badgeTxt = 'KURANG';
+            icon = '<i class="fas fa-exclamation-circle" style="color:#ff9800"></i>';
+        } else {
+            color = '#f44336'; badgeCls = 'badge-belum'; badgeTxt = 'BELUM';
+            icon = '<i class="fas fa-times-circle" style="color:#f44336"></i>';
+        }
+        const jumlah = d.jumlah_file || 0;
+        const pct = typeof d.persentase === 'number' ? d.persentase
+                    : Math.round((jumlah / TARGET_LAPORAN) * 100);
+
+        html += `
+            <div class="abs-item" style="--item-color:${color}; animation-delay:${Math.min(i*20, 300)}ms"
+                 data-name="${escapeHtml(d.nama)}"
+                 data-jumlah="${jumlah}"
+                 data-pct="${pct}"
+                 data-status="${status}"
+                 data-color="${color}">
+                <div class="abs-item-name">
+                    ${icon}
+                    <span>${escapeHtml(d.nama || 'Tanpa Nama')}</span>
+                </div>
+                <div class="abs-item-count">
+                    ${jumlah}<small>/${TARGET_LAPORAN}</small>
+                </div>
+                <div style="grid-column:1/-1; display:flex; align-items:center; gap:8px;">
+                    <div class="abs-item-bar" style="flex:1">
+                        <div class="abs-item-bar-fill" style="width:${pct}%"></div>
+                    </div>
+                    <span class="abs-item-badge ${badgeCls}">${badgeTxt}</span>
+                </div>
+            </div>`;
+    });
+    list.innerHTML = html;
+
+    list.querySelectorAll('.abs-item').forEach(el => {
+        el.addEventListener('click', () => {
+            showDetail({
+                nama: el.getAttribute('data-name'),
+                jumlah: parseInt(el.getAttribute('data-jumlah')) || 0,
+                pct: parseInt(el.getAttribute('data-pct')) || 0,
+                status: el.getAttribute('data-status'),
+                color: el.getAttribute('data-color')
+            });
+        });
+    });
+}
+
+function applyFilter() {
+    const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+    let filtered = allDetails.slice();
+
+    if (currentFilter === 'lengkap') {
+        filtered = filtered.filter(d => (d.status || '').toUpperCase() === 'LENGKAP');
+    } else if (currentFilter === 'bl') {
+        filtered = filtered.filter(d => (d.status || '').toUpperCase() === 'BELUM_LENGKAP');
+    } else if (currentFilter === 'belum') {
+        filtered = filtered.filter(d => {
+            const s = (d.status || '').toUpperCase();
+            return s !== 'LENGKAP' && s !== 'BELUM_LENGKAP';
+        });
+    }
+    if (q) filtered = filtered.filter(d => (d.nama || '').toLowerCase().includes(q));
+    renderList(filtered);
+}
+
+/* ============================================================
+   MODAL DETAIL
+   ============================================================ */
+function showDetail(item) {
+    const status = item.status || 'BELUM';
+    let statusLabel, badgeCls, statusIcon;
+    if (status === 'LENGKAP') {
+        statusLabel = 'LENGKAP'; badgeCls = 'badge-lengkap'; statusIcon = 'fa-check';
+    } else if (status === 'BELUM_LENGKAP') {
+        statusLabel = 'BELUM LENGKAP'; badgeCls = 'badge-bl'; statusIcon = 'fa-exclamation';
+    } else {
+        statusLabel = 'BELUM ADA'; badgeCls = 'badge-belum'; statusIcon = 'fa-times';
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'abs-modal';
+    modal.innerHTML = `
+        <div class="abs-modal-content" style="--item-color:${item.color}">
+            <button class="abs-modal-close" onclick="this.closest('.abs-modal').remove()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="abs-modal-icon"><i class="fas ${statusIcon}"></i></div>
+            <div class="abs-modal-name">${escapeHtml(item.nama)}</div>
+            <span class="abs-modal-status ${badgeCls}">${statusLabel}</span>
+            <div class="abs-modal-grid">
+                <div class="abs-modal-stat">
+                    <div class="abs-modal-stat-val">${item.jumlah}</div>
+                    <div class="abs-modal-stat-lbl">File Laporan</div>
+                </div>
+                <div class="abs-modal-stat">
+                    <div class="abs-modal-stat-val">${item.pct}%</div>
+                    <div class="abs-modal-stat-lbl">Progress</div>
+                </div>
+            </div>
+            <div class="abs-modal-progress-label">
+                <span>Target Bulanan</span>
+                <span>${item.jumlah} / ${TARGET_LAPORAN}</span>
+            </div>
+            <div class="abs-progress">
+                <div class="abs-progress-fill" style="width:${item.pct}%;
+                     background:linear-gradient(90deg, ${item.color}, ${item.color}cc)"></div>
+            </div>
+            <button class="abs-modal-btn" onclick="this.closest('.abs-modal').remove()">
+                <i class="fas fa-check"></i> TUTUP
+            </button>
+        </div>
+    `;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
+/* ============================================================
+   INIT & EVENTS
+   ============================================================ */
+$tahun.addEventListener('change', onYearChange);
+$bulan.addEventListener('change', () => { if ($bulan.value) loadData(); });
+
+$refresh.addEventListener('click', async () => {
+    if (!isOnline) { showToast('Tidak ada koneksi', 'error'); return; }
+    const c = getCache();
+    if (c && c.data) { delete c.data; setCache(c); }
+    showToast('Memperbarui data...', 'info');
+    await loadYears();
+});
+
+updateOnlineStatus();
+loadYears();
+
+setInterval(() => {
+    if (isOnline && document.visibilityState === 'visible') loadData();
+}, 5 * 60 * 1000);
+
+console.log('%c📋 Absensi DUKOPS siap','background:#4caf50;color:#fff;padding:4px 10px;border-radius:4px;font-weight:bold');
+</script>
+</body>
+</html>
